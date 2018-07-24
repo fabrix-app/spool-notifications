@@ -1,29 +1,30 @@
 import { FabrixApp } from '@fabrix/fabrix'
 import { FabrixModel as Model } from '@fabrix/fabrix/dist/common'
 import { SequelizeResolver } from '@fabrix/spool-sequelize'
+import { ModelError } from '@fabrix/spool-sequelize/dist/errors'
 
 import * as shortId from 'shortid'
 // shortId.characters('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
 
-import * as _ from 'lodash'
-const queryDefaults = require('../utils/queryDefaults')
+import { isString, isObject, isNumber, defaultsDeep, values } from 'lodash'
+import { NotificationDefaults } from '../utils/queryDefaults'
 import { PROTOCOLS } from '../../enums'
 
 
 export class NotificationResolver extends SequelizeResolver {
-  findByIdDefault (id, options) {
-    options = this.app.services.ProxyEngineService.mergeOptionDefaults(
-      queryDefaults.Notification.default(this.app),
-      options || {}
+  findByIdDefault (id, options = {}) {
+    options = this.app.services.SequelizeService.mergeOptionDefaults(
+      NotificationDefaults.default(this.app),
+      options
     )
 
     return this.findById(id, options)
   }
 
-  findByTokenDefault (token, options) {
-    options = this.app.services.ProxyEngineService.mergeOptionDefaults(
-      queryDefaults.Notification.default(this.app),
-      options || {},
+  findByTokenDefault (token, options = {}) {
+    options = this.app.services.SequelizeService.mergeOptionDefaults(
+      NotificationDefaults.default(this.app),
+      options,
       {
         where: {
           token: token
@@ -34,76 +35,149 @@ export class NotificationResolver extends SequelizeResolver {
     return this.findOne(options)
   }
 
-  findOneDefault (options) {
-    options = this.app.services.ProxyEngineService.mergeOptionDefaults(
-      queryDefaults.Notification.default(this.app),
-      options || {}
+  findOneDefault (options = {}) {
+    options = this.app.services.SequelizeService.mergeOptionDefaults(
+      NotificationDefaults.default(this.app),
+      options
     )
     return this.findOne(options)
   }
 
-  findAllDefault (options) {
-    options = this.app.services.ProxyEngineService.mergeOptionDefaults(
-      queryDefaults.Notification.default(this.app),
-      options || {}
+  findAllDefault (options = {}) {
+    options = this.app.services.SequelizeService.mergeOptionDefaults(
+      NotificationDefaults.default(this.app),
+      options
     )
 
     return this.findAll(options)
   }
 
-  findAndCountDefault (options) {
-    options = this.app.services.ProxyEngineService.mergeOptionDefaults(
-      queryDefaults.Notification.default(this.app),
-      options || {}
+  findAndCountDefault (options = {}) {
+    options = this.app.services.SequelizeService.mergeOptionDefaults(
+      NotificationDefaults.default(this.app),
+      options
     )
 
     return this.findAndCountAll(options)
   }
 
-  createDefault (notification, options) {
-    options = this.app.services.ProxyEngineService.mergeOptionDefaults(
-      queryDefaults.Notification.default(this.app),
-      options || {}
+  createDefault (notification, options: {[key: string]: any} = {}) {
+    options = this.app.services.SequelizeService.mergeOptionDefaults(
+      NotificationDefaults.default(this.app),
+      options
     )
 
     return this.create(notification, options)
   }
 
-  resolve (notification, options = {}) {
-    if (notification instanceof this.sequelizeModel) {
-      return Promise.resolve(notification)
+  /**
+   * Resolve by instance Function
+   * @param notification
+   * @param options
+   */
+  resolveByInstance (notification, options: {[key: string]: any} = {}) {
+    return Promise.resolve(notification)
+  }
+  /**
+   * Resolve by id Function
+   * @param notification
+   * @param options
+   */
+  resolveById (notification, options: {[key: string]: any} = {}) {
+    return this.findById(notification.id, options)
+      .then(resNotification => {
+        if (!resNotification && options.reject !== false) {
+          throw new ModelError('E_NOT_FOUND', `Notification ${notification.id} not found`)
+        }
+        return resNotification
+      })
+  }
+  /**
+   * Resolve by token Function
+   * @param notification
+   * @param options
+   */
+  resolveByToken (notification, options: {[key: string]: any} = {}) {
+    return this.findOne(defaultsDeep({
+      where: {
+        token: notification.token
+      }
+    }, options))
+      .then(resNotification => {
+        if (!resNotification && options.reject !== false) {
+          throw new ModelError('E_NOT_FOUND', `Notification token ${notification.token} not found`)
+        }
+        return resNotification
+      })
+  }
+  /**
+   * Resolve by number Function
+   * @param notification
+   * @param options
+   */
+  resolveByNumber (notification, options: {[key: string]: any} = {}) {
+    return this.findById(notification, options)
+      .then(resNotification => {
+        if (!resNotification && options.reject !== false) {
+          throw new ModelError('E_NOT_FOUND', `Notification ${notification.token} not found`)
+        }
+        return resNotification
+      })
+  }
+  /**
+   * Resolve by string Function
+   * @param notification
+   * @param options
+   */
+  resolveByString (notification, options: {[key: string]: any} = {}) {
+    return this.findOne(defaultsDeep({
+      where: {
+        token: notification
+      }
+    }, options))
+      .then(resNotification => {
+        if (!resNotification && options.reject !== false) {
+          throw new ModelError('E_NOT_FOUND', `Notification ${notification} not found`)
+        }
+        return resNotification
+      })
+  }
+  /**
+   * Primary Resolve Function
+   * @param notification
+   * @param options
+   */
+  resolve(notification, options: {[key: string]: any} = {}) {
+    const resolvers = {
+      'instance': notification instanceof this.sequelizeModel,
+      'id': !!(notification && isObject(notification) && notification.id),
+      'token': !!(notification && isObject(notification) && notification.token),
+      'number': !!(notification && isNumber(notification)),
+      'string': !!(notification && isString(notification))
     }
-    else if (notification && _.isObject(notification) && notification.id) {
-      return this.findByIdDefault(notification.id, options)
-        .then(resNotification => {
-          if (!resNotification) {
-            throw new Error(`Notification ${notification.id} not found`)
-          }
-          return resNotification
-        })
-    }
-    else if (notification && (_.isNumber(notification))) {
-      return this.findByIdDefault(notification, options)
-        .then(resNotification => {
-          if (!resNotification) {
-            throw new Error(`Notification ${notification} not found`)
-          }
-          return resNotification
-        })
-    }
-    else if (notification && (_.isString(notification))) {
-      return this.findByTokenDefault(notification, options)
-        .then(resNotification => {
-          if (!resNotification) {
-            throw new Error(`Notification ${notification} not found`)
-          }
-          return resNotification
-        })
-    }
-    else {
-      // TODO create proper error
-      const err = new Error('Unable to resolve Notification')
-      return Promise.reject(err)
+    const type = Object.keys(resolvers).find((key) => resolvers[key])
+
+    switch (type) {
+      case 'instance': {
+        return this.resolveByInstance(notification, options)
+      }
+      case 'id': {
+        return this.resolveById(notification, options)
+      }
+      case 'token': {
+        return this.resolveByToken(notification, options)
+      }
+      case 'number': {
+        return this.resolveByNumber(notification, options)
+      }
+      case 'string': {
+        return this.resolveByString(notification, options)
+      }
+      default: {
+        // TODO create proper error
+        const err = new Error(`Unable to resolve Notification ${notification}`)
+        return Promise.reject(err)
+      }
     }
   }
 }
@@ -133,19 +207,19 @@ export class Notification extends Model {
           PROTOCOLS: PROTOCOLS
         },
         hooks: {
-          beforeCreate: (values, options) => {
-            if (!values.token) {
-              values.token = `notification_${shortId.generate()}`
+          beforeCreate: (notification, options) => {
+            if (!notification.token) {
+              notification.token = `notification_${shortId.generate()}`
             }
-            if (!values.subject) {
-              values.subject = values.type
+            if (!notification.subject) {
+              notification.subject = notification.type
             }
-            if (!values.html) {
-              values.html = app.services.RenderGenericService.renderSync(values.text).document
+            if (!notification.html) {
+              notification.html = app.services.RenderGenericService.renderSync(notification.text).document
             }
           },
-          afterCreate: (values, options) => {
-            return app.services.NotificationService.afterCreate(values, options)
+          afterCreate: (notification, options) => {
+            return app.services.NotificationService.afterCreate(notification, options)
           }
         },
         classMethods: {
@@ -166,7 +240,7 @@ export class Notification extends Model {
       // Protocol to send email
       protocol: {
         type: Sequelize.ENUM,
-        values: _.values(PROTOCOLS),
+        values: values(PROTOCOLS),
         defaultValue: app.config.get('generics.email_provider.config.protocol')
       },
       // Host to send email from
@@ -269,7 +343,7 @@ Notification.prototype.send = function(app: FabrixApp, options = {}) {
     return Promise.resolve(this)
   }
 
-  return this.resolveEmailUsers({transaction: options.transaction || null})
+  return this.resolveEmailUsers(app, {transaction: options.transaction || null})
     .then(emailUsers => {
       if (emailUsers && emailUsers.length > 0) {
         const _emailUsers = this.users.filter(user => user.email)
@@ -296,7 +370,6 @@ Notification.prototype.send = function(app: FabrixApp, options = {}) {
           template_name: this.template_name,
           template_content: this.template_content
         }
-
         return app.services.EmailGenericService[sendType](message)
           .catch(err => {
             app.log.error(err)
@@ -312,7 +385,7 @@ Notification.prototype.send = function(app: FabrixApp, options = {}) {
       // emails = emails.filter(email => email)
       if (emails.length > 0) {
         app.log.debug('EMAILS SENT', this.token, emails.length)
-        return this.setSent().save({ transaction: options.transaction || null})
+        return this.setSent(app, options).save({ transaction: options.transaction || null})
       }
       else {
         return this
@@ -335,7 +408,7 @@ Notification.prototype.open = function(app: FabrixApp, user, options = {}) {
     return Promise.resolve(this)
   }
   else {
-    return this.userOpened(user, options)
+    return this.userOpened(app, user, options)
   }
 }
 /**
@@ -387,7 +460,7 @@ Notification.prototype.resolveUsers = function(app, options = {}) {
 // TODO, refactor to something pleasant.
 Notification.prototype.resolveEmailUsers = function(app: FabrixApp, options = {}) {
   let emailUsers = []
-  return this.resolveUsers({
+  return this.resolveUsers(app, {
     transaction: options.transaction || null,
     reload: options.reload || null
   })

@@ -1,4 +1,5 @@
 import { FabrixController as Controller } from '@fabrix/fabrix/dist/common'
+import { ModelError } from '@fabrix/spool-sequelize/dist/errors'
 
 /**
  * @module NotificationController
@@ -22,7 +23,7 @@ export class NotificationController extends Controller {
     Notification.findByIdDefault(req.params.id, {})
       .then(notification => {
         if (!notification) {
-          throw new Error(`Notification id ${ req.params.id } not found`)
+          throw new ModelError('E_NOT_FOUND', `Notification id ${ req.params.id } not found`)
         }
         return this.app.services.PermissionsService.sanitizeResult(req, notification)
       })
@@ -51,7 +52,7 @@ export class NotificationController extends Controller {
     Notification.findByTokenDefault(req.params.token)
       .then(notification => {
         if (!notification) {
-          throw new Error(`Notification token ${ req.params.token } not found`)
+          throw new ModelError('E_NOT_FOUND', `Notification token ${ req.params.token } not found`)
         }
         return this.app.services.PermissionsService.sanitizeResult(req, notification)
       })
@@ -80,7 +81,7 @@ export class NotificationController extends Controller {
     Notification.resolve(req.params.notification)
       .then(notification => {
         if (!notification) {
-          throw new Error(`Notification ${ req.params.notification } not found`)
+          throw new ModelError('E_NOT_FOUND', `Notification ${ req.params.notification } not found`)
         }
         return this.app.services.PermissionsService.sanitizeResult(req, notification)
       })
@@ -103,7 +104,7 @@ export class NotificationController extends Controller {
     const limit = Math.max(0, req.query.limit || 10)
     const offset = Math.max(0, req.query.offset || 0)
     const sort = req.query.sort || [['created_at', 'DESC']]
-    const where = res.jsonCritera(req.query.where)
+    const where = req.jsonCriteria(req.query.where)
 
     Notification.findAndCountDefault({
       where: where,
@@ -130,8 +131,7 @@ export class NotificationController extends Controller {
    * @param res
    */
   userNotifications(req, res) {
-    const orm = this.app.models
-    const Notification = orm['Notification']
+    const Notification = this.app.models['Notification']
     const limit = Math.max(0, req.query.limit || 10)
     const offset = Math.max(0, req.query.offset || 0)
     const sort = req.query.sort || [['created_at', 'DESC']]
@@ -154,7 +154,7 @@ export class NotificationController extends Controller {
     Notification.findAndCountDefault({
       include: [
         {
-          model: this.app.models['User'],
+          model: this.app.models['User'].resolver.sequelizeModel,
           as: 'users',
           where: {
             id: id

@@ -22,7 +22,7 @@ describe('NotificationService', () => {
       text: 'Test Message'
     })
       .then(notification => {
-        // console.log('THIS NOTIFICATION', notification)
+        console.log('THIS NOTIFICATION', notification)
         assert.ok(notification.id)
         assert.ok(notification.token)
         assert.equal(notification.type, 'Test')
@@ -34,6 +34,7 @@ describe('NotificationService', () => {
         done()
       })
       .catch(err => {
+        console.log('BROKE', err)
         done(err)
       })
   })

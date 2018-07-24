@@ -4,7 +4,9 @@ const _ = require('lodash')
 const smokesignals = require('smokesignals')
 const fs = require('fs')
 const path = require('path')
-const ModelPassport = require('@fabrix/spool-passport/api/models/User')
+const ModelPassport = require('@fabrix/spool-passport/dist/api/models/User').User
+const ModelPermissions = require('@fabrix/spool-permissions/dist/api/models/User').User
+const SequelizeResolver = require('@fabrix/spool-permissions/dist/api/models/User').UserResolver
 
 const SERVER = process.env.SERVER || 'express'
 const ORM = process.env.ORM || 'sequelize'
@@ -16,7 +18,7 @@ const spools = [
   require('@fabrix/spool-passport').PassportSpool,
   require('@fabrix/spool-permissions').PermissionsSpool,
   require('@fabrix/spool-generics').GenericsSpool,
-  require('../dist').NotificationSpool // spool-notifications
+  require('../../dist').NotificationsSpool // spool-notifications
 ]
 
 let web = {}
@@ -34,10 +36,10 @@ const stores = {
 }
 
 if (ORM === 'waterline') {
-  spools.push(require('spool-waterline'))
+  spools.push(require('@fabrix/spool-waterline').SpoolWaterline)
 }
 else if (ORM === 'sequelize') {
-  spools.push(require('spool-proxy-sequelize'))
+  spools.push(require('@fabrix/spool-sequelize').SequelizeSpool)
   if (DIALECT === 'postgres') {
     stores.sqlitedev = {
       orm: 'sequelize',
@@ -84,17 +86,8 @@ if ( SERVER === 'express' ) {
 const App = {
   api: {
     models: {
-      User: class User extends ModelPassport {
-        static config(app, Sequelize) {
-          return {
-            options: {
-              underscored: true
-            }
-          }
-        }
-
+      User: class User extends ModelPermissions {
         static associate(models) {
-          ModelPassport.associate(models)
           ModelPermissions.associate(models)
           models.User.belongsToMany(models.Notification, {
             as: 'notifications',
@@ -117,19 +110,18 @@ const App = {
     version: '1.0.0'
   },
   config: {
-    database: {
-      stores: stores,
-      models: {
-        defaultStore: 'sqlitedev',
-        migrate: 'drop'
-      }
+    stores: stores,
+    models: {
+      defaultStore: 'sqlitedev',
+      migrate: 'drop'
     },
-    routes: {},
     main: {
       spools: spools
     },
     policies: {
-      '*': [ 'CheckPermissionsPolicy.checkRoute' ]
+      '*': {
+        '*': [ 'CheckPermissions.checkRoute' ]
+      }
     },
     log: {
       logger: new smokesignals.Logger('debug')
@@ -181,7 +173,7 @@ const App = {
     generics: {
       email_provider: {
         adapter: require('./FakeEmail'),
-        options: {
+        config: {
           host: 'test.com',
           protocol: 'https'
         }

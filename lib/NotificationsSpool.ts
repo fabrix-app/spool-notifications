@@ -21,11 +21,11 @@ export class NotificationsSpool extends Spool {
    * Validates Configs
    */
   async validate () {
-    const requiredSpools = ['express', 'sequelize']
+    const requiredSpools = ['express', 'sequelize', 'passport', 'permissions']
     const spools = Object.keys(this.app.spools)
 
     if (!spools.some(v => requiredSpools.indexOf(v) >= 0)) {
-      return Promise.reject(new Error(`spool-permissions requires spools: ${ requiredSpools.join(', ') }!`))
+      return Promise.reject(new Error(`spool-notifications requires spools: ${ requiredSpools.join(', ') }!`))
     }
 
     // Configs
@@ -50,6 +50,10 @@ export class NotificationsSpool extends Spool {
       return Promise.reject(new Error('No configuration found at config.generics.email_provider.options.host!'))
     }
 
+    if (!this.app.config.get('generics.render_service')) {
+      this.app.log.warn('config.generics.render_service is not set, notifications will load generics-render')
+    }
+
     return Promise.all([
       Validator.validateNotifications.config(this.app.config.get('notifications'))
     ])
@@ -57,9 +61,14 @@ export class NotificationsSpool extends Spool {
 
   async configure () {
     return Promise.all([
-      Notifications.configure(this.app),
       Notifications.resolveGenerics(this.app)
     ])
+  }
+
+  sanity() {
+    if (!this.app.config.get('generics.render_service.adapter')) {
+      throw new Error('config.generics.render_service was not set or was unset incorrectly')
+    }
   }
 }
 

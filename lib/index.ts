@@ -1,5 +1,5 @@
 // exports.Utils = require('./utils')
-// exports.ProxyNotifications = require('./notifications')
+// exports.notifications = require('./notifications')
 // exports.Validator = require('./validator')
 // exports.Schemas = require('./schemas')
 // exports.Enums = require('./enums')

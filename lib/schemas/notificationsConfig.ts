@@ -1,7 +1,7 @@
 import * as joi from 'joi'
 
 export const notificationsConfig = joi.object().keys({
-  prefix: joi.string().accept('', null).required(),
+  prefix: joi.string().allow('', null).required(),
   to: joi.object().keys({
     default_name: joi.string()
   }),

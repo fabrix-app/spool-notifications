@@ -13,7 +13,7 @@ describe('Admin NotificationController', () => {
 
   before((done) => {
     request = supertest('http://localhost:3000')
-    adminUser = supertest.agent(global.app.packs.express.server)
+    adminUser = supertest.agent(global.app.spools.express.server)
 
     adminUser
       .post('/auth/local')

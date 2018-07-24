@@ -1,7 +1,5 @@
 import { FabrixService as Service } from '@fabrix/fabrix/dist/common'
-
-const Errors = require('proxy-engine-errors')
-
+import { ModelError } from '@fabrix/spool-sequelize/dist/errors'
 /**
  * @module NotificationService
  * @description Notification Service
@@ -27,16 +25,15 @@ export class NotificationService extends Service {
 
         resNotification = createdNotification
 
-        return Notification.sequelize.Promise.mapSeries(users, user => {
+        return Notification.resolver.sequelizeModel.sequelize.Promise.mapSeries(users, user => {
           return User.resolve(user, {transaction: options.transaction || null})
         })
       })
-      .then(_users => {
-        _users = _users || []
+      .then((_users = []) => {
         return resNotification.setUsers(_users.map(u => u.id), {transaction: options.transaction || null})
       })
       .then(() => {
-        return resNotification.send({transaction: options.transaction})
+        return resNotification.send(this.app, {transaction: options.transaction})
       })
   }
 
@@ -52,13 +49,16 @@ export class NotificationService extends Service {
     return Notification.resolve(notification, options)
       .then(_notification => {
         if (!_notification) {
-          throw new Errors.FoundError(Error(`Notification ${notification} not found`))
+          throw new ModelError('E_NOT_FOUND', `Notification ${notification} not found`)
         }
         resNotification = _notification
-        return resNotification.send({transaction: options.transaction || null})
+        return resNotification.send(this.app, {transaction: options.transaction || null})
       })
   }
 
+  /**
+   *
+   */
   registerClick(notification, options: {[key: string]: any} = {}) {
     const Notification = this.app.models['Notification']
     const user = options.req && options.req.user ? options.req.user : null
@@ -66,16 +66,19 @@ export class NotificationService extends Service {
     return Notification.resolve(notification, options)
       .then(_notification => {
         if (!_notification) {
-          throw new Errors.FoundError(Error(`Notification ${notification} not found`))
+          throw new ModelError('E_NOT_FOUND', `Notification ${notification} not found`)
         }
         resNotification = _notification
-        return resNotification.click(user, {transaction: options.transaction || null})
+        return resNotification.click(this.app, user, {transaction: options.transaction || null})
       })
       .then(() => {
         return resNotification.save({transaction: options.transaction || null})
       })
   }
 
+  /**
+   *
+   */
   registerOpen(notification, options: {[key: string]: any} = {}) {
     const Notification = this.app.models['Notification']
     const user = options.req && options.req.user ? options.req.user : null
@@ -83,10 +86,10 @@ export class NotificationService extends Service {
     return Notification.resolve(notification, options)
       .then(_notification => {
         if (!_notification) {
-          throw new Errors.FoundError(Error(`Notification ${notification} not found`))
+          throw new ModelError('E_NOT_FOUND', `Notification ${notification} not found`)
         }
         resNotification = _notification
-        return resNotification.open(user, {transaction: options.transaction || null})
+        return resNotification.open(this.app, user, {transaction: options.transaction || null})
       })
       .then(() => {
         return resNotification.save({transaction: options.transaction || null})

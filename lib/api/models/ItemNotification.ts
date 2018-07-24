@@ -1,5 +1,5 @@
 import { FabrixModel as Model } from '@fabrix/fabrix/dist/common'
-
+import { SequelizeResolver } from '@fabrix/spool-sequelize'
 /**
  * @module ItemNotification
  * @description Item Notification
@@ -39,6 +39,13 @@ export class ItemNotification extends Model {
         defaultValue: false
       }
     }
+  }
+
+  /**
+   * Sequelize Resolver
+   */
+  public static get resolver() {
+    return SequelizeResolver
   }
 
   /**
