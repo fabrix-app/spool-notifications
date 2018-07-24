@@ -30,7 +30,7 @@ export const main = {
 
 [npm-image]: https://img.shields.io/npm/v/@fabrix/spool-notifications.svg?style=flat-square
 [npm-url]: https://npmjs.org/package/@fabrix/spool-notifications
-[ci-image]: https://img.shields.io/circleci/project/github/fabrix-app/spool-notifications/nmaster.svg
+[ci-image]: https://img.shields.io/circleci/project/github/fabrix-app/spool-notifications/master.svg
 [ci-url]: https://circleci.com/gh/fabrix-app/spool-notifications/tree/master
 [daviddm-image]: http://img.shields.io/david/fabrix-app/spool-notifications.svg?style=flat-square
 [daviddm-url]: https://david-dm.org/fabrix-app/spool-notifications
