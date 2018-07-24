@@ -19,10 +19,11 @@ $ npm install --save @fabrix/spool-notifications
 
 ```js
 // config/main.ts
+import { NotificationsSpool } from '@fabrix/spool-notifications'
 export const main = {
   spools: [
     // ... other spools
-    require('@fabrix/spool-notifications')
+    NotificationsSpool
   ]
 }
 ```
