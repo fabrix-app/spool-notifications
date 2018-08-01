@@ -33,7 +33,7 @@ export class NotificationService extends Service {
         return resNotification.setUsers(_users.map(u => u.id), {transaction: options.transaction || null})
       })
       .then(() => {
-        return resNotification.send(this.app, {transaction: options.transaction})
+        return resNotification.send({transaction: options.transaction})
       })
   }
 
@@ -52,7 +52,7 @@ export class NotificationService extends Service {
           throw new ModelError('E_NOT_FOUND', `Notification ${notification} not found`)
         }
         resNotification = _notification
-        return resNotification.send(this.app, {transaction: options.transaction || null})
+        return resNotification.send({transaction: options.transaction || null})
       })
   }
 
@@ -69,7 +69,7 @@ export class NotificationService extends Service {
           throw new ModelError('E_NOT_FOUND', `Notification ${notification} not found`)
         }
         resNotification = _notification
-        return resNotification.click(this.app, user, {transaction: options.transaction || null})
+        return resNotification.click(user, {transaction: options.transaction || null})
       })
       .then(() => {
         return resNotification.save({transaction: options.transaction || null})
@@ -89,7 +89,7 @@ export class NotificationService extends Service {
           throw new ModelError('E_NOT_FOUND', `Notification ${notification} not found`)
         }
         resNotification = _notification
-        return resNotification.open(this.app, user, {transaction: options.transaction || null})
+        return resNotification.open(user, {transaction: options.transaction || null})
       })
       .then(() => {
         return resNotification.save({transaction: options.transaction || null})

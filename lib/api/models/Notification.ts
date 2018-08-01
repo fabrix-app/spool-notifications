@@ -182,15 +182,6 @@ export class NotificationResolver extends SequelizeResolver {
   }
 }
 
-export interface Notification {
-  setSent(app: FabrixApp, options): any
-  send(app: FabrixApp, options): any
-  click(app: FabrixApp, user, options): any
-  open(app: FabrixApp, user, options): any
-  userOpened(app: FabrixApp, user, options): any
-  resolveUsers(app: FabrixApp, options): any
-  resolveEmailUsers(app: FabrixApp, options): any
-}
 
 
 /**
@@ -325,10 +316,20 @@ export class Notification extends Model {
   }
 }
 
+export interface Notification {
+  setSent(options): any
+  send(options): any
+  click(user, options): any
+  open(user, options): any
+  userOpened(user, options): any
+  resolveUsers(options): any
+  resolveEmailUsers(options): any
+}
+
 /**
  *
  */
-Notification.prototype.setSent = function(app: FabrixApp) {
+Notification.prototype.setSent = function() {
   this.sent = true
   this.sent_at = new Date(Date.now())
   return this
@@ -336,14 +337,14 @@ Notification.prototype.setSent = function(app: FabrixApp) {
 /**
  *
  */
-Notification.prototype.send = function(app: FabrixApp, options = {}) {
+Notification.prototype.send = function(options = {}) {
   const sendType = this.template_name && this.template_name !== '' ? 'sendTemplate' : 'send'
 
   if (typeof this.send_email !== 'undefined' && this.send_email === false) {
     return Promise.resolve(this)
   }
 
-  return this.resolveEmailUsers(app, {transaction: options.transaction || null})
+  return this.resolveEmailUsers({transaction: options.transaction || null})
     .then(emailUsers => {
       if (emailUsers && emailUsers.length > 0) {
         const _emailUsers = this.users.filter(user => user.email)
@@ -351,7 +352,7 @@ Notification.prototype.send = function(app: FabrixApp, options = {}) {
           if (user) {
             return {
               email: user.email,
-              name: user.first_name || user.username || app.config.get('notifications.to.default_name')
+              name: user.first_name || user.username || this.app.config.get('notifications.to.default_name')
             }
           }
         })
@@ -362,17 +363,17 @@ Notification.prototype.send = function(app: FabrixApp, options = {}) {
           text: this.text,
           html: this.html,
           to: users,
-          reply_to: this.reply_to || app.config.get('notifications.from.email'),
+          reply_to: this.reply_to || this.app.config.get('notifications.from.email'),
           from: {
-            email: app.config.get('notifications.from.email'),
-            name: app.config.get('notifications.from.name')
+            email: this.app.config.get('notifications.from.email'),
+            name: this.app.config.get('notifications.from.name')
           },
           template_name: this.template_name,
           template_content: this.template_content
         }
-        return app.services.EmailGenericService[sendType](message)
+        return this.app.services.EmailGenericService[sendType](message)
           .catch(err => {
-            app.log.error(err)
+            this.app.log.error(err)
             return null
           })
 
@@ -384,8 +385,8 @@ Notification.prototype.send = function(app: FabrixApp, options = {}) {
     .then(emails => {
       // emails = emails.filter(email => email)
       if (emails.length > 0) {
-        app.log.debug('EMAILS SENT', this.token, emails.length)
-        return this.setSent(app, options).save({ transaction: options.transaction || null})
+        this.app.log.debug('EMAILS SENT', this.token, emails.length)
+        return this.setSent(options).save({ transaction: options.transaction || null})
       }
       else {
         return this
@@ -395,27 +396,27 @@ Notification.prototype.send = function(app: FabrixApp, options = {}) {
 /**
  *
  */
-Notification.prototype.click = function(app: FabrixApp, user, options = {}) {
+Notification.prototype.click = function(user, options = {}) {
   this.total_clicks++
   return Promise.resolve(this)
 }
 /**
  *
  */
-Notification.prototype.open = function(app: FabrixApp, user, options = {}) {
+Notification.prototype.open = function(user, options = {}) {
   this.total_opens++
   if (!user) {
     return Promise.resolve(this)
   }
   else {
-    return this.userOpened(app, user, options)
+    return this.userOpened(user, options)
   }
 }
 /**
  * Register that a User Opened a Notification
  */
-Notification.prototype.userOpened = function (app: FabrixApp, user, options = {}) {
-  return app.models['ItemNotification'].update({ opened: true }, {
+Notification.prototype.userOpened = function (user, options: {[key: string]: any} = {}) {
+  return this.app.models['ItemNotification'].update({ opened: true }, {
     where: {
       notification_id: this.id,
       model: 'user',
@@ -427,18 +428,18 @@ Notification.prototype.userOpened = function (app: FabrixApp, user, options = {}
       return this
     })
     .catch(err => {
-      app.log.error(err)
+      this.app.log.error(err)
       return this
     })
 }
 /**
  *
  */
-Notification.prototype.resolveUsers = function(app, options = {}) {
+Notification.prototype.resolveUsers = function(options: {[key: string]: any} = {}) {
   if (
     this.users
     && this.users.length > 0
-    && this.users.every(u => u instanceof app.models['User'].resolver.sequelizeModel)
+    && this.users.every(u => u instanceof this.app.models['User'].instance)
     && options.reload !== true
   ) {
     return Promise.resolve(this)
@@ -458,9 +459,9 @@ Notification.prototype.resolveUsers = function(app, options = {}) {
  *
  */
 // TODO, refactor to something pleasant.
-Notification.prototype.resolveEmailUsers = function(app: FabrixApp, options = {}) {
+Notification.prototype.resolveEmailUsers = function(options = {}) {
   let emailUsers = []
-  return this.resolveUsers(app, {
+  return this.resolveUsers({
     transaction: options.transaction || null,
     reload: options.reload || null
   })
@@ -486,7 +487,7 @@ Notification.prototype.resolveEmailUsers = function(app: FabrixApp, options = {}
               user.preferences = JSON.parse(user.preferences)
             }
             catch (err) {
-              app.log.error('Unable to parse user.preferences')
+              this.app.log.error('Unable to parse user.preferences')
               user.preferences = {}
             }
           }
@@ -526,7 +527,7 @@ Notification.prototype.resolveEmailUsers = function(app: FabrixApp, options = {}
       return emailUsers
     })
     .catch(err => {
-      app.log.error(err)
+      this.app.log.error(err)
       return emailUsers
     })
 }
