@@ -107,7 +107,7 @@ const App = {
   },
   pkg: {
     name: 'spool-notifications-test',
-    version: '1.0.0'
+    version: '1.1.1'
   },
   config: {
     stores: stores,
