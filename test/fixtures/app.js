@@ -14,7 +14,6 @@ const DIALECT = process.env.DIALECT || 'postgres'
 
 const spools = [
   require('@fabrix/spool-router').RouterSpool,
-  // require('@fabrix/spool-engine').EngineSpool,
   require('@fabrix/spool-passport').PassportSpool,
   require('@fabrix/spool-permissions').PermissionsSpool,
   require('@fabrix/spool-generics').GenericsSpool,
@@ -178,10 +177,6 @@ const App = {
           protocol: 'https'
         }
       }
-    },
-    engine: {
-      live_mode: false,
-      profile: 'testProfile'
     }
   }
 }
